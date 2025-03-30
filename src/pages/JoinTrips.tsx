@@ -75,7 +75,7 @@ const JoinTrips = () => {
                 groupSize={trip.groupSize}
                 price={trip.price}
                 openSpots={trip.openSpots}
-                onJoin={() => handleJoinTrip(trip.title)}
+                onJoin={handleJoinTrip}
               />
             ))}
           </div>

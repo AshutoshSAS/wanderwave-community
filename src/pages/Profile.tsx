@@ -1,10 +1,36 @@
 
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Calendar, Heart, MapPin, Settings, Clock, User, Users } from 'lucide-react';
+import { MessageSquare, Calendar, MapPin, Settings, Clock, User, Users } from 'lucide-react';
 import TripCard from '@/components/TripCard';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Profile = () => {
+  const { user, profile, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth/sign-in');
+    }
+  }, [user, loading, navigate]);
+
+  // If loading or no user, show minimal content
+  if (loading || !user) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen pt-20 pb-16 px-4">
+          <div className="max-w-6xl mx-auto text-center py-12">
+            <p>Loading profile...</p>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -28,7 +54,7 @@ const Profile = () => {
                 {/* Profile Picture */}
                 <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white overflow-hidden bg-white">
                   <img
-                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1287&q=80"
+                    src={profile?.avatar_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1287&q=80"}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
@@ -36,7 +62,7 @@ const Profile = () => {
                 
                 {/* Name and Bio */}
                 <div className="text-center md:text-left md:mb-2">
-                  <h1 className="text-2xl font-bold mt-2 md:mt-0">Sarah Thompson</h1>
+                  <h1 className="text-2xl font-bold mt-2 md:mt-0">{profile?.full_name || user.email}</h1>
                   <p className="text-muted-foreground">
                     Digital Nomad | 25 Countries Explored
                   </p>
@@ -47,7 +73,7 @@ const Profile = () => {
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <Clock size={14} />
-                      <span>Joined May 2022</span>
+                      <span>Joined {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                     </div>
                   </div>
                 </div>
@@ -60,6 +86,13 @@ const Profile = () => {
                 </Button>
                 <Button variant="outline" size="sm">
                   <Settings size={16} />
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={signOut}
+                >
+                  Sign Out
                 </Button>
               </div>
             </div>

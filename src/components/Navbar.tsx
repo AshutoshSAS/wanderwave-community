@@ -11,7 +11,8 @@ import {
   MessageSquare, 
   User,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,6 +25,16 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -32,6 +43,7 @@ const Navbar = () => {
   const isMobile = useIsMobile();
   const isHomePage = location.pathname === "/";
   const { toast } = useToast();
+  const { user, profile, signOut } = useAuth();
 
   // Change navbar appearance on scroll
   useEffect(() => {
@@ -55,6 +67,20 @@ const Navbar = () => {
 
   // Don't show the navbar on the home page when at the top
   if (isHomePage && !isScrolled) return null;
+
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+        .split(' ')
+        .map(name => name[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+    }
+    
+    return user?.email?.substring(0, 2).toUpperCase() || 'U';
+  };
 
   return (
     <nav
@@ -191,11 +217,43 @@ const Navbar = () => {
             </div>
           )}
 
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/profile">
-              <User size={20} />
-            </Link>
-          </Button>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 p-0">
+                  <Avatar>
+                    <AvatarImage src={profile?.avatar_url} />
+                    <AvatarFallback className="bg-gradient-to-r from-teal-400 to-ocean-400 text-white">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()} className="text-red-600 focus:text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" asChild>
+                <Link to="/auth/sign-in">Sign In</Link>
+              </Button>
+              <Button className="bg-gradient-to-r from-teal-500 to-ocean-500 hover:from-teal-600 hover:to-ocean-600" asChild>
+                <Link to="/auth/sign-up">Sign Up</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -247,14 +305,45 @@ const Navbar = () => {
               <span className="font-medium">Forum</span>
             </Link>
             
-            <Link 
-              to="/profile"
-              className="flex items-center p-3 rounded-lg hover:bg-slate-100"
-              onClick={toggleMenu}
-            >
-              <User size={20} className="mr-3" />
-              <span className="font-medium">Profile</span>
-            </Link>
+            {user ? (
+              <>
+                <Link 
+                  to="/profile"
+                  className="flex items-center p-3 rounded-lg hover:bg-slate-100"
+                  onClick={toggleMenu}
+                >
+                  <User size={20} className="mr-3" />
+                  <span className="font-medium">Profile</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    signOut();
+                    toggleMenu();
+                  }}
+                  className="flex items-center p-3 rounded-lg hover:bg-slate-100 text-red-600"
+                >
+                  <LogOut size={20} className="mr-3" />
+                  <span className="font-medium">Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/auth/sign-in"
+                  className="flex items-center justify-center p-3 rounded-lg hover:bg-slate-100 border"
+                  onClick={toggleMenu}
+                >
+                  <span className="font-medium">Sign In</span>
+                </Link>
+                <Link 
+                  to="/auth/sign-up"
+                  className="flex items-center justify-center p-3 rounded-lg bg-gradient-to-r from-teal-500 to-ocean-500 text-white"
+                  onClick={toggleMenu}
+                >
+                  <span className="font-medium">Sign Up</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -304,6 +393,12 @@ const NavItem = ({
 }) => {
   const location = useLocation();
   const active = location.pathname === to;
+  const { user } = useAuth();
+
+  // If trying to access profile without being logged in, redirect to sign in
+  if (to === "/profile" && !user) {
+    to = "/auth/sign-in";
+  }
 
   return (
     <Link
